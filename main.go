@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"      // <--- Make sure this is here!
 	"os"
 	"os/exec"
 	"syscall"
 	"github.com/shaikmuskan27/gocker-linux-runtime/pkg/container"
 )
 
+// ... rest of your code ...
+// ... rest of your code
 func main() {
 	switch os.Args[1] {
 	case "run":
@@ -30,14 +33,23 @@ func parent() {
 }
 
 func child() {
-	container.ConfigureCgroups()
+	fmt.Printf("Running %v as %d\n", os.Args[2:], os.Getpid())
+
 	container.SetupNamespace()
+	// container.ConfigureCgroups() // Uncomment if you fixed the paths
 
 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Run()
-	
-	syscall.Unmount("/proc", 0)
+
+	// This allows the shell to find 'ps' and other tools
+	cmd.Env = []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
+
+	must(cmd.Run())
+}
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
