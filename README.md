@@ -1,8 +1,10 @@
-Gocker: A Custom Linux Container Runtime in Go
-A low-level container engine implementation built from scratch to explore Linux Kernel primitives. This project demonstrates how tools like Docker use the Linux API to provide process isolation and resource management.
+To make the headings larger and more professional, we will use Markdown Level 1 and Level 2 Headers. In GitHub, the # (H1) creates the largest possible font, usually with an underline, making the project title look like a proper brand.
 
-🏗️ Architecture
-The runtime follows the Parent-Child Re-exec pattern:
+Here is the updated README with maximized header sizes and the screenshot placeholders.
+
+🚀 GOCKER: CUSTOM LINUX RUNTIME FROM SCRATCH
+🏗️ ARCHITECTURE OVERVIEW
+The runtime follows the Parent-Child Re-exec pattern to isolate the environment before the application starts:
 
 Parent: Invokes /proc/self/exe with Cloneflags to create a new namespace "bubble."
 
@@ -10,54 +12,51 @@ Child: Configures the internal environment (hostname, chroot, mounts, cgroups).
 
 Exec: Replaces the child process with the target binary (e.g., /bin/sh).
 
-🚀 Key Features
-Namespaces (Isolation): Implements UTS, PID, and Mount namespaces using syscall to isolate the container identity and process tree.
+🛠️ CORE FEATURES
+🔒 Namespaces (Deep Isolation)
+Implements UTS, PID, and Mount namespaces using Go's syscall package. This ensures the container has its own identity and cannot see host processes.
 
-Filesystem Jailing: Uses chroot to lock the process into an Alpine Linux rootfs, ensuring the host filesystem remains invisible.
+⛓️ Filesystem Jailing (Chroot)
+Uses the chroot syscall to lock the process into an Alpine Linux rootfs. The host's filesystem is completely invisible to the containerized process.
 
-Resource Control (Cgroups): Implements Control Groups (v2) to enforce a hard limit on the number of processes (PIDs) to prevent fork-bomb attacks.
+📉 Resource Control (Cgroups v2)
+Enforces hard limits on the number of processes (PIDs) using Linux Control Groups to prevent fork-bomb attacks from crashing the host.
 
-VFS Management: Manually mounts a private /proc to ensure the container only sees its own processes.
+📂 VFS Management
+Manually mounts a private /proc filesystem inside the jail so that tools like ps only reflect the container's internal state.
 
-🛠️ Execution & Workflow
-1. Preparing the Environment
-We use a multi-stage Docker build managed by Terraform to deploy the runtime into a "Fake Azure" local environment.
+📸 EXECUTION SHOWCASE
+1. Infrastructure Deployment (Terraform)
+We manage the container lifecycle using Terraform to bridge the gap between Infrastructure as Code and low-level Go execution.
 
-[INSERT SCREENSHOT: Your VS Code terminal showing terraform apply success]
+[INSERT SCREENSHOT: VS Code showing "terraform apply" completion]
 
-2. Building the RootFS
-To provide the container with its own world, we extract a mini-rootfs from Alpine Linux:
+2. The Isolation Proof (PID 1)
+Once the runtime executes, the shell enters a "God Mode" inside its namespace, believing it is the first process on the system.
 
+[INSERT SCREENSHOT: VS Code terminal showing "Running [/bin/sh] as 1"]
+
+3. Filesystem Security
+The container is trapped in its rootfs. It cannot see the very binary that launched it (gocker-runtime), proving the chroot jail is active.
+
+[INSERT SCREENSHOT: Terminal showing "ls /root/gocker-runtime" returning "No such file"]
+
+🚀 HOW TO RUN
+Step 1: Prepare the RootFS
 Bash
 
 mkdir rootfs
 docker export $(docker create alpine) | tar -C rootfs -xf -
-3. Launching the Runtime
-The runtime is executed inside a privileged container to allow the Go binary to manipulate host namespaces.
-
+Step 2: Build & Launch
 Bash
 
+docker build -t gocker-final .
 docker run --privileged -it gocker-final run /bin/sh
-[INSERT SCREENSHOT: Your VS Code terminal showing the "Running [/bin/sh] as 1" output]
-
-🧪 Verification & Results
-Once inside the Gocker shell, we can verify the isolation:
-
-PID Isolation
-Running ps confirms that the shell is running as PID 1, and the container cannot see host processes.
-
-[INSERT SCREENSHOT: Terminal showing ps command with PID 1]
-
-Filesystem Isolation
-Running ls / shows the Alpine filesystem, and attempts to access the host's gocker-runtime binary fail, proving the chroot jail is active.
-
-[INSERT SCREENSHOT: Terminal showing ls / and the failed attempt to see host files]
-
-🔧 Technical Stack
-Language: Go (Golang)
+🔧 TECH STACK
+Core: Go (Golang)
 
 Infrastructure: Terraform
 
-Containerization: Docker (Multi-stage builds)
+Containerization: Docker
 
-OS Interface: Linux Syscalls (CLONE_NEWPID, CLONE_NEWUTS, CLONE_NEWNS)
+Kernel Interface: Linux Syscalls (CLONE_NEWPID, CLONE_NEWUTS, CLONE_NEWNS)
