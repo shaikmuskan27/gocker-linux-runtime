@@ -1,8 +1,4 @@
-To make the headings larger and more professional, we will use Markdown Level 1 and Level 2 Headers. In GitHub, the # (H1) creates the largest possible font, usually with an underline, making the project title look like a proper brand.
-
-Here is the updated README with maximized header sizes and the screenshot placeholders
-
-🚀 GOCKER: CUSTOM LINUX RUNTIME FROM SCRATCH
+## 🚀 GOCKER: CUSTOM LINUX RUNTIME FROM SCRATCH
 🏗️ ARCHITECTURE OVERVIEW
 The runtime follows the Parent-Child Re-exec pattern to isolate the environment before the application starts:
 
