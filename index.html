@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gocker Sandbox | Interactive Linux Container Runtime Simulator</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #080c14;
+            --panel-bg: rgba(17, 24, 39, 0.75);
+            --border-color: rgba(6, 182, 212, 0.15);
+            --accent-cyan: #06b6d4;
+            --accent-purple: #a855f7;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --terminal-bg: #030712;
+            --glow-color: rgba(6, 182, 212, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        #network-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+
+        /* Layout */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-weight: 800;
+            font-size: 1.5rem;
+            letter-spacing: -0.5px;
+            color: #fff;
+        }
+
+        .logo-accent {
+            color: var(--accent-cyan);
+        }
+
+        .header-meta {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            background: rgba(6, 182, 212, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-cyan);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px var(--accent-cyan); }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 2rem;
+            align-items: stretch;
+            flex-grow: 1;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Description Panel */
+        .info-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2.5rem;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .project-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-purple);
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .project-title {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .project-desc {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .features-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .feature-item {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .feature-icon {
+            color: var(--accent-cyan);
+            font-size: 1.1rem;
+            margin-top: 0.2rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .feature-text h4 {
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .feature-text p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .demo-instructions {
+            border-top: 1px solid var(--border-color);
+            padding-top: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .demo-instructions h5 {
+            color: #fff;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.75rem;
+        }
+
+        .code-snippet {
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-cyan);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .code-snippet:hover {
+            border-color: rgba(6, 182, 212, 0.4);
+            background: rgba(6, 182, 212, 0.03);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
+        }
+
+        .btn-launch-demo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: #fff;
+            font-weight: bold;
+            padding: 0.875rem 1.75rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 20px rgba(6, 182, 212, 0.25);
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+            text-decoration: none;
+        }
+
+        .btn-launch-demo:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(6, 182, 212, 0.4);
+        }
+
+        /* Right Panel: Terminal and Visualization */
+        .interactive-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Terminal Window */
+        .terminal-window {
+            background: var(--terminal-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+            flex-grow: 1;
+            min-height: 400px;
+        }
+
+        .terminal-bar {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .control-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot-close { background-color: #ef4444; }
+        .dot-min { background-color: #eab308; }
+        .dot-max { background-color: #22c55e; }
+
+        .terminal-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .terminal-status {
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .terminal-body {
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: #d1d5db;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            overflow-y: auto;
+            flex-grow: 1;
+            max-height: 450px;
+        }
+
+        .terminal-output {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .term-prompt {
+            color: #38bdf8;
+        }
+
+        .term-prompt-host {
+            color: #34d399;
+        }
+
+        .term-prompt-root {
+            color: #f87171;
+        }
+
+        .term-command {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .term-system-info {
+            color: var(--text-muted);
+        }
+
+        .term-success {
+            color: #34d399;
+        }
+
+        .term-warning {
+            color: #fbbf24;
+        }
+
+        .term-error {
+            color: #f87171;
+        }
+
+        .terminal-input-line {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: auto;
+        }
+
+        .terminal-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            flex-grow: 1;
+            caret-color: var(--accent-cyan);
+        }
+
+        /* Architecture Visualizer */
+        .visualizer-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .visualizer-title {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .visualizer-title i {
+            color: var(--accent-cyan);
+        }
+
+        .diagram-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .diagram-layer {
+            background: rgba(3, 7, 18, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 0.875rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .diagram-layer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: transparent;
+            transition: all 0.3s ease;
+        }
+
+        .layer-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: color 0.3s ease;
+        }
+
+        .layer-name i {
+            font-size: 1rem;
+            width: 18px;
+            text-align: center;
+        }
+
+        .layer-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        /* Active Layer States */
+        .diagram-layer.active {
+            background: rgba(6, 182, 212, 0.05);
+            border-color: rgba(6, 182, 212, 0.3);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.05);
+        }
+
+        .diagram-layer.active::before {
+            background: var(--accent-cyan);
+        }
+
+        .diagram-layer.active .layer-name {
+            color: #fff;
+        }
+
+        .diagram-layer.active .layer-name i {
+            color: var(--accent-cyan);
+        }
+
+        .diagram-layer.active .layer-status {
+            color: var(--accent-cyan);
+            border-color: rgba(6, 182, 212, 0.3);
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        .diagram-layer.enforced {
+            background: rgba(168, 85, 247, 0.05);
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        .diagram-layer.enforced::before {
+            background: var(--accent-purple);
+        }
+
+        .diagram-layer.enforced .layer-name {
+            color: #fff;
+        }
+
+        .diagram-layer.enforced .layer-name i {
+            color: var(--accent-purple);
+        }
+
+        .diagram-layer.enforced .layer-status {
+            color: var(--accent-purple);
+            border-color: rgba(168, 85, 247, 0.3);
+            background: rgba(168, 85, 247, 0.1);
+        }
+
+        footer {
+            margin-top: auto;
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            margin-left: 1.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--accent-cyan);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.01);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="network-canvas"></canvas>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <span class="logo-accent">&lt;</span>GOCKER<span class="logo-accent">.sandbox /&gt;</span>
+            </div>
+            <div class="header-meta">
+                <span class="pulse-dot"></span> SECURE CONTAINER ENGINE VERIFIED
+            </div>
+        </header>
+
+        <main class="main-grid">
+            <!-- Left Info Panel -->
+            <div class="info-panel">
+                <div>
+                    <span class="project-tag">// SYSTEMS LAB</span>
+                    <h1 class="project-title">Go Container Sandbox</h1>
+                </div>
+                <p class="project-desc">
+                    Gocker is a production-grade, custom-built Linux container runtime engineered in Go. It directly executes namespace isolation, Cgroup quotas, filesystem jails, and virtual mounts to emulate Docker-like isolation at the kernel interface level.
+                </p>
+
+                <ul class="features-list">
+                    <li class="feature-item">
+                        <div class="feature-icon"><i class="fa-solid fa-microchip"></i></div>
+                        <div class="feature-text">
+                            <h4>Namespace Virtualization</h4>
+                            <p>Isolates UTS (hostname), PID (process tree), Mount points, and Network adapters through Linux <code>clone()</code> syscall execution flags.</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon"><i class="fa-solid fa-sliders"></i></div>
+                        <div class="feature-text">
+                            <h4>Cgroups Resource Policing</h4>
+                            <p>Restricts physical hardware consumption, enforcing memory byte limits and CPU shares directly in cgroups v1 and v2 directories.</p>
+                        </div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon"><i class="fa-solid fa-lock"></i></div>
+                        <div class="feature-text">
+                            <h4>Chroot Sandboxing</h4>
+                            <p>Prisons the execution process into a locked Alpine rootfs folder, ensuring host directories remain completely invisible.</p>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="demo-instructions">
+                    <h5>Test Command Template</h5>
+                    <div class="code-snippet" id="copy-snippet" title="Click to fill command in terminal">
+                        <span>sudo ./gocker run --cpu 512 --mem 50M /bin/sh</span>
+                        <i class="fa-solid fa-terminal" style="font-size: 0.8rem; opacity: 0.7;"></i>
+                    </div>
+                    <button class="btn-launch-demo" id="btn-auto-run">
+                        <i class="fa-solid fa-play"></i> Run Sandbox Simulation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Interactive Panel -->
+            <div class="interactive-panel">
+                <!-- Terminal -->
+                <div class="terminal-window">
+                    <div class="terminal-bar">
+                        <div class="terminal-controls">
+                            <span class="control-dot dot-close"></span>
+                            <span class="control-dot dot-min"></span>
+                            <span class="control-dot dot-max"></span>
+                        </div>
+                        <div class="terminal-title">operator@gocker-host: ~</div>
+                        <div class="terminal-status"><i class="fa-solid fa-shield-halved"></i> mTLS SHIELD</div>
+                    </div>
+                    <div class="terminal-body" id="term-body">
+                        <div class="terminal-output term-system-info">Welcome to the Gocker Container Sandbox simulation.
+Type 'help' to view available diagnostic commands.
+To launch the isolated container shell, execute the 'sudo ./gocker run ...' command.</div>
+                        <div class="terminal-input-line">
+                            <span class="term-prompt" id="term-prompt-prefix"><span class="term-prompt-host">operator@gocker-host</span>:~$</span>
+                            <input type="text" class="terminal-input" id="term-input" placeholder="Type a command and press Enter..." autocomplete="off" autofocus>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Diagram -->
+                <div class="visualizer-card">
+                    <div class="visualizer-title">
+                        <i class="fa-solid fa-network-wired"></i> Sandbox Isolation Layers
+                    </div>
+                    <div class="diagram-container">
+                        <!-- Layer 4 -->
+                        <div class="diagram-layer" id="layer-jail">
+                            <div class="layer-name">
+                                <i class="fa-solid fa-folder-closed"></i> Chroot Jail Sandbox
+                            </div>
+                            <div class="layer-status" id="status-jail">INACTIVE</div>
+                        </div>
+                        <!-- Layer 3 -->
+                        <div class="diagram-layer" id="layer-cgroups">
+                            <div class="layer-name">
+                                <i class="fa-solid fa-sliders"></i> Cgroup Limits Enforced
+                            </div>
+                            <div class="layer-status" id="status-cgroups">INACTIVE</div>
+                        </div>
+                        <!-- Layer 2 -->
+                        <div class="diagram-layer" id="layer-namespaces">
+                            <div class="layer-name">
+                                <i class="fa-solid fa-mask"></i> Private Namespaces (UTS, PID, NET)
+                            </div>
+                            <div class="layer-status" id="status-namespaces">INACTIVE</div>
+                        </div>
+                        <!-- Layer 1 -->
+                        <div class="diagram-layer active" id="layer-kernel">
+                            <div class="layer-name">
+                                <i class="fa-solid fa-server"></i> Host Kernel Interface
+                            </div>
+                            <div class="layer-status">ACTIVE</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div>&copy; 2026 Shaik Muskan. Custom Systems Engineering Showcase.</div>
+            <div class="footer-links">
+                <a href="https://github.com/shaikmuskan27/gocker-linux-runtime" target="_blank"><i class="fa-brands fa-github"></i> Repository</a>
+                <a href="https://linkedin.com/in/shaikmuskan27" target="_blank"><i class="fa-brands fa-linkedin"></i> LinkedIn</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // --- 1. Background Particles Canvas ---
+        const canvas = document.getElementById('network-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let particles = [];
+        const maxParticles = 50;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.radius = Math.random() * 2 + 1;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > canvas.width) this.vx = -this.vx;
+                if (this.y < 0 || this.y > canvas.height) this.vy = -this.vy;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(6, 182, 212, 0.4)';
+                ctx.fill();
+            }
+        }
+
+        function initCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            particles = [];
+            for (let i = 0; i < maxParticles; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+
+            // Draw connecting lines
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 120) {
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animateCanvas);
+        }
+
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+        animateCanvas();
+
+
+        // --- 2. Interactive Terminal Simulation ---
+        const termBody = document.getElementById('term-body');
+        const termInput = document.getElementById('term-input');
+        const termPrefix = document.getElementById('term-prompt-prefix');
+        const btnAutoRun = document.getElementById('btn-auto-run');
+        const copySnippet = document.getElementById('copy-snippet');
+
+        // Layers DOM reference
+        const layers = {
+            namespaces: document.getElementById('layer-namespaces'),
+            cgroups: document.getElementById('layer-cgroups'),
+            jail: document.getElementById('layer-jail'),
+            statusNamespaces: document.getElementById('status-namespaces'),
+            statusCgroups: document.getElementById('status-cgroups'),
+            statusJail: document.getElementById('status-jail')
+        };
+
+        let isInsideContainer = false;
+        let cgroupConfig = { cpu: 0, mem: "" };
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        // Terminal text handlers
+        function printOutput(htmlContent) {
+            const outputDiv = document.createElement('div');
+            outputDiv.className = 'terminal-output';
+            outputDiv.innerHTML = htmlContent;
+            termBody.insertBefore(outputDiv, termBody.lastElementChild);
+            termBody.scrollTop = termBody.scrollHeight;
+        }
+
+        function setPromptState(inContainer) {
+            if (inContainer) {
+                termPrefix.innerHTML = `<span class="term-prompt-root">root@gocker-runtime</span>:/#`;
+            } else {
+                termPrefix.innerHTML = `<span class="term-prompt-host">operator@gocker-host</span>:~$`;
+            }
+        }
+
+        function updateDiagramVisuals() {
+            if (isInsideContainer) {
+                // Namespaces
+                layers.namespaces.classList.add('active');
+                layers.statusNamespaces.innerText = 'ISOLATED';
+                
+                // Cgroups
+                if (cgroupConfig.cpu > 0 || cgroupConfig.mem !== "") {
+                    layers.cgroups.classList.add('enforced');
+                    layers.statusCgroups.innerText = `LIMITS: CPU=${cgroupConfig.cpu || '1024'} MEM=${cgroupConfig.mem || 'UNLIMITED'}`;
+                } else {
+                    layers.cgroups.classList.add('active');
+                    layers.statusCgroups.innerText = 'ACTIVE (NO LIMITS)';
+                }
+
+                // Jail
+                layers.jail.classList.add('active');
+                layers.statusJail.innerText = 'JAILED (Alpine rootfs)';
+            } else {
+                // Reset to default
+                layers.namespaces.classList.remove('active');
+                layers.statusNamespaces.innerText = 'INACTIVE';
+
+                layers.cgroups.classList.remove('active', 'enforced');
+                layers.statusCgroups.innerText = 'INACTIVE';
+
+                layers.jail.classList.remove('active');
+                layers.statusJail.innerText = 'INACTIVE';
+            }
+        }
+
+        // Run the Gocker execution sequence
+        function executeGocker(cpu, mem, command) {
+            printOutput(`[sudo] password for operator: **********`);
+            
+            setTimeout(() => {
+                printOutput(`<span class="term-success">Spawning child process context re-execing /proc/self/exe init...</span>`);
+            }, 300);
+
+            setTimeout(() => {
+                printOutput(`Syncing parent and child... Pipe connected.`);
+            }, 600);
+
+            setTimeout(() => {
+                cgroupConfig.cpu = parseInt(cpu) || 1024;
+                cgroupConfig.mem = mem || "UNLIMITED";
+                printOutput(`Configuring Cgroups: writing to CPU (cpu.shares) and Memory (memory.limit_in_bytes)...`);
+                printOutput(`<span class="term-success">-> Memory Limit configured to ${cgroupConfig.mem}</span>`);
+                printOutput(`<span class="term-success">-> CPU Shares configured to ${cgroupConfig.cpu}</span>`);
+            }, 900);
+
+            setTimeout(() => {
+                printOutput(`Setting namespace flags: CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWNET`);
+                printOutput(`Locking sandbox jail into rootfs folder (chroot)...`);
+                printOutput(`Mounting private /proc filesystem...`);
+                printOutput(`Running /bin/sh inside container as PID 1...`);
+            }, 1400);
+
+            setTimeout(() => {
+                isInsideContainer = true;
+                setPromptState(true);
+                updateDiagramVisuals();
+                printOutput(`\nWelcome to Alpine Linux 3.19 (Inside Gocker Jail)`);
+                printOutput(`Hostname: gocker-runtime | Environment: Sandbox`);
+            }, 1800);
+        }
+
+        function handleCommand(cmdRaw) {
+            const cmd = cmdRaw.trim();
+            if (cmd === "") return;
+
+            // Add to history
+            commandHistory.push(cmd);
+            historyIndex = commandHistory.length;
+
+            // Print the entered command line
+            const currentPrompt = termPrefix.innerHTML;
+            printOutput(`${currentPrompt} <span class="term-command">${cmd}</span>`);
+
+            if (isInsideContainer) {
+                // Commands inside Gocker container
+                const args = cmd.split(/\s+/);
+                const baseCmd = args[0].toLowerCase();
+
+                switch (baseCmd) {
+                    case 'help':
+                        printOutput(`Available container commands:\n  ls         - List directories inside the chroot jail\n  hostname   - Show UTS-isolated hostname\n  ps aux     - List isolated PID namespace processes\n  cat [file] - View file contents\n  whoami     - Show active container user\n  exit       - Elegant container shutdown and unmount`);
+                        break;
+                    case 'clear':
+                        const headerLine = termBody.firstElementChild;
+                        termBody.innerHTML = '';
+                        termBody.appendChild(headerLine);
+                        break;
+                    case 'ls':
+                        printOutput(`bin   dev   etc   home  lib   mnt   opt   proc  root  run   sbin  srv   sys   tmp   usr   var`);
+                        break;
+                    case 'hostname':
+                        printOutput(`gocker-runtime`);
+                        break;
+                    case 'whoami':
+                        printOutput(`root`);
+                        break;
+                    case 'ps':
+                    case 'ps aux':
+                        printOutput(`PID   USER     TIME  COMMAND\n    1 root      0:00 /bin/sh\n    4 root      0:00 ps aux`);
+                        break;
+                    case 'cat':
+                        if (args[1] && args[1].includes('memory.limit_in_bytes')) {
+                            // Convert mem representation back to bytes
+                            let bytes = "52428800"; // Default for 50M
+                            if (cgroupConfig.mem.includes('M')) {
+                                bytes = parseInt(cgroupConfig.mem) * 1024 * 1024;
+                            }
+                            printOutput(bytes.toString());
+                        } else if (args[1] && args[1].includes('memory.max')) {
+                            let bytes = "52428800";
+                            if (cgroupConfig.mem.includes('M')) {
+                                bytes = parseInt(cgroupConfig.mem) * 1024 * 1024;
+                            }
+                            printOutput(bytes.toString());
+                        } else if (args[1]) {
+                            printOutput(`cat: ${args[1]}: Access Denied (read-only container boundaries)`);
+                        } else {
+                            printOutput(`Usage: cat [filepath]`);
+                        }
+                        break;
+                    case 'exit':
+                        printOutput(`Sending SIGTERM to container processes...`);
+                        printOutput(`Unmounting /proc filesystem elegantly...`);
+                        printOutput(`Tearing down namespace structures...`);
+                        setTimeout(() => {
+                            isInsideContainer = false;
+                            setPromptState(false);
+                            updateDiagramVisuals();
+                            printOutput(`Exit code 0. Returned to host shell.`);
+                        }, 600);
+                        break;
+                    default:
+                        printOutput(`sh: ${baseCmd}: command not found. (Type 'help' for sandbox commands)`);
+                }
+            } else {
+                // Commands on Host
+                const args = cmd.split(/\s+/);
+                const baseCmd = args[0].toLowerCase();
+
+                if (cmd.startsWith('sudo ./gocker run')) {
+                    // Parse values
+                    let cpuVal = 512;
+                    let memVal = "50M";
+                    
+                    const cpuIndex = args.indexOf('--cpu');
+                    if (cpuIndex !== -1 && args[cpuIndex + 1]) {
+                        cpuVal = args[cpuIndex + 1];
+                    }
+                    const memIndex = args.indexOf('--mem');
+                    if (memIndex !== -1 && args[memIndex + 1]) {
+                        memVal = args[memIndex + 1];
+                    }
+
+                    executeGocker(cpuVal, memVal, "/bin/sh");
+                } else {
+                    switch (baseCmd) {
+                        case 'help':
+                            printOutput(`Available host commands:\n  help        - Show available host tools\n  clear       - Clear screen\n  ls          - List workspace files\n  sudo ./gocker run --cpu [shares] --mem [quota] /bin/sh - Launches isolated container`);
+                            break;
+                        case 'clear':
+                            const headerLine = termBody.firstElementChild;
+                            termBody.innerHTML = '';
+                            termBody.appendChild(headerLine);
+                            break;
+                        case 'ls':
+                            printOutput(`<span class="term-success">main.go     pkg/     go.mod     Makefile     rootfs/ (isolated)</span>`);
+                            break;
+                        default:
+                            printOutput(`bash: ${baseCmd}: command not found. (Execute <span class="term-warning">sudo ./gocker run --cpu 512 --mem 50M /bin/sh</span> to launch Gocker)`);
+                    }
+                }
+            }
+        }
+
+        // Trigger command on enter key press
+        termInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const cmd = termInput.value;
+                termInput.value = '';
+                handleCommand(cmd);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    termInput.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    termInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    termInput.value = '';
+                }
+            }
+        });
+
+        // Click command block to fill command
+        copySnippet.addEventListener('click', () => {
+            termInput.value = copySnippet.firstElementChild.innerText;
+            termInput.focus();
+        });
+
+        // Click launch demo button
+        btnAutoRun.addEventListener('click', () => {
+            termInput.value = 'sudo ./gocker run --cpu 512 --mem 50M /bin/sh';
+            termInput.focus();
+            setTimeout(() => {
+                const cmd = termInput.value;
+                termInput.value = '';
+                handleCommand(cmd);
+            }, 400);
+        });
+
+        // Auto focus input when clicking terminal panel body
+        document.querySelector('.terminal-window').addEventListener('click', () => {
+            termInput.focus();
+        });
+    </script>
+</body>
+</html>
